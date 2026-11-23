@@ -1,9 +1,70 @@
-{
-  "patient": {
-    "id": "P-001",
-    "region": "강남구",
-    "lat": 37.5172,
-    "lng": 127.0473
-  },
-  "routes": []
+import json
+import math
+import numpy as np
+
+def clean_num(val, default=None):
+    if val is None:
+        return default
+    try:
+        f = float(val)
+        return default if (math.isnan(f) or math.isinf(f)) else round(f, 4)
+    except Exception:
+        return default
+
+routes_export = []
+for _, row in successful_df.iterrows():
+    # OSRM GeoJSON 좌표는 [경도(lon), 위도(lat)] 순서이므로 Google Maps용 {lat, lng}로 변환
+    raw_coords = row.get("경로좌표") or []
+    coords_latlng = []
+    for c in raw_coords:
+        if isinstance(c, (list, tuple)) and len(c) >= 2:
+            lat_v = clean_num(c[1])
+            lng_v = clean_num(c[0])
+            if lat_v is not None and lng_v is not None:
+                coords_latlng.append({"lat": lat_v, "lng": lng_v})
+
+    routes_export.append({
+        "name": str(row["지정병원명"]),
+        "api_name": str(row.get("API병원명", row["지정병원명"])),
+        "address": str(row["주소"]),
+        "lat": float(row["위도"]),
+        "lng": float(row["경도"]),
+        "distance_km": float(row["도로거리(km)"]),
+        "osrm_minutes": clean_num(row.get("OSRM예상시간(분)"), 0.0),
+        "coordinates": coords_latlng
+    })
+
+traffic_export = None
+if isinstance(traffic_data, dict):
+    traffic_export = {
+        "link_id": str(TRAFFIC_LINK_ID),
+        "speed_kmh": traffic_data.get("prcs_spd"),
+        "travel_time_sec": traffic_data.get("prcs_trv_time")
+    }
+
+export_json = {
+    "meta": {
+        "speed_kmh": float(AMBULANCE_SPEED),
+        "default_delay_factor": float(DELAY_FACTOR),
+        "total_target_hospitals": int(len(HOSPITAL_NAMES)),
+        "matched_hospitals": int(len(hospital_df)),
+        "routed_hospitals": int(len(successful_df)),
+        "diseases": [
+            {"name": k, "limit": int(v["limit"]), "color": v["color"]}
+            for k, v in DISEASES.items()
+        ],
+        "traffic": traffic_export
+    },
+    "patient": {
+        "id": str(patient["환자번호"]),
+        "district": str(patient["발생지역"]),
+        "lat": float(patient["위도"]),
+        "lng": float(patient["경도"])
+    },
+    "routes": routes_export
 }
+
+with open("routes_data.json", "w", encoding="utf-8") as f:
+    json.dump(export_json, f, ensure_ascii=False, indent=2)
+
+print(f"routes_data.json 저장 완료! (환자: {patient['환자번호']} / {patient['발생지역']}, 경로 수: {len(routes_export)}개)")

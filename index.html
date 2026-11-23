@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>응급실 골든타임 접근성 시뮬레이션 (Google Maps)</title>
+  <title>응급환자 질환별 골든타임 및 도로 이동거리 분석 (Google Maps)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -12,8 +12,8 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-      background: #f4f6f9;
-      color: #222;
+      background: #f1f5f9;
+      color: #0f172a;
     }
     #map {
       width: 100vw;
@@ -21,45 +21,56 @@
     }
     .panel {
       position: fixed;
-      top: 16px;
-      left: 16px;
+      top: 14px;
+      left: 14px;
       z-index: 10;
-      width: 320px;
-      max-height: calc(100vh - 32px);
+      width: 345px;
+      max-height: calc(100vh - 28px);
       overflow-y: auto;
       background: rgba(255, 255, 255, 0.97);
       border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+      padding: 15px;
+      box-shadow: 0 8px 26px rgba(15, 23, 42, 0.18);
       border: 1px solid #e2e8f0;
     }
     .panel h1 {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+    }
+    .sub {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .summary-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 11.5px;
+      line-height: 1.55;
+      color: #334155;
+    }
+    .summary-box b {
       color: #0f172a;
     }
-    .panel .sub {
-      font-size: 12px;
-      color: #64748b;
-      margin-bottom: 14px;
-    }
     .section {
-      margin-top: 12px;
-      padding-top: 12px;
+      margin-top: 11px;
+      padding-top: 11px;
       border-top: 1px solid #e2e8f0;
     }
     .label-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12.5px;
+      font-weight: 700;
       margin-bottom: 6px;
     }
     .delay-val {
       color: #d97706;
-      font-weight: 700;
       font-size: 14px;
     }
     input[type="range"] {
@@ -70,70 +81,96 @@
     .range-ticks {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 10.5px;
       color: #64748b;
-      margin-top: 4px;
+      margin-top: 3px;
     }
-    .disease-group label {
+    .disease-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      margin-bottom: 8px;
+      justify-content: space-between;
+      font-size: 12.5px;
+      margin-bottom: 6px;
       cursor: pointer;
+      padding: 3px 4px;
+      border-radius: 6px;
+    }
+    .disease-item:hover {
+      background: #f8fafc;
+    }
+    .disease-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    .disease-stat {
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
     }
     .legend {
       display: flex;
-      gap: 12px;
-      font-size: 12px;
-      margin-top: 8px;
-      color: #334155;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 11px;
+      margin-top: 6px;
+      color: #475569;
     }
     .legend span {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .dot {
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       display: inline-block;
     }
+    .dot-pt { background: #2563eb; }
     .dot-ok { background: #16a34a; }
     .dot-no { background: #dc2626; }
-    .dot-pt { background: #2563eb; }
     .formula {
-      margin-top: 10px;
-      font-size: 11px;
+      margin-top: 8px;
+      font-size: 10.5px;
       color: #64748b;
-      line-height: 1.5;
+      line-height: 1.45;
       background: #f8fafc;
-      padding: 8px;
-      border-radius: 8px;
+      padding: 7px 8px;
+      border-radius: 7px;
     }
     .rank-list {
-      margin-top: 8px;
+      margin-top: 6px;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
     .rank-item {
-      font-size: 12px;
-      padding: 8px 10px;
+      font-size: 11.5px;
+      padding: 7px 9px;
       border-radius: 8px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
     }
     .rank-item:hover {
       background: #eff6ff;
+      border-color: #93c5fd;
     }
     .rank-top {
       display: flex;
       justify-content: space-between;
-      font-weight: 600;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
       margin-bottom: 2px;
     }
     .badge-ok {
@@ -141,29 +178,40 @@
       background: #dcfce7;
       padding: 1px 6px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 10.5px;
+      white-space: nowrap;
     }
     .badge-no {
       color: #b91c1c;
       background: #fee2e2;
       padding: 1px 6px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 10.5px;
+      white-space: nowrap;
     }
     .rank-sub {
       color: #475569;
       font-size: 11px;
+      line-height: 1.4;
+    }
+    .note {
+      margin-top: 8px;
+      font-size: 10.5px;
+      color: #64748b;
+      line-height: 1.45;
     }
   </style>
 </head>
 <body>
   <div class="panel">
     <h1>응급실 골든타임 경로 분석</h1>
-    <div class="sub" id="patient-summary">환자 발생지(P-001 강남구) 기준 도로 접근성</div>
+    <div class="sub" id="data-source-label">데이터 불러오는 중...</div>
+
+    <div class="summary-box" id="summary-box"></div>
 
     <div class="section">
       <div class="label-row">
-        <span>도로 지체계수</span>
+        <span>교통 지체계수</span>
         <span class="delay-val" id="delay-value">1.3</span>
       </div>
       <input id="delay-slider" type="range" min="1.0" max="2.0" step="0.1" value="1.3" />
@@ -174,29 +222,30 @@
       </div>
     </div>
 
-    <div class="section disease-group">
-      <div class="label-row"><span>판정 기준 질환 선택</span></div>
-      <label><input type="radio" name="disease" value="10" /> 심정지 (골든타임 10분)</label>
-      <label><input type="radio" name="disease" value="30" checked /> 중증응급 (골든타임 30분)</label>
-      <label><input type="radio" name="disease" value="60" /> 뇌졸중·심근경색 (골든타임 60분)</label>
+    <div class="section">
+      <div class="label-row"><span>질환별 골든타임 기준 (체크로 경로 표시)</span></div>
+      <div id="disease-controls"></div>
 
       <div class="legend">
-        <span><i class="dot dot-pt"></i>환자</span>
+        <span><i class="dot dot-pt"></i>환자(P)</span>
         <span><i class="dot dot-ok"></i>골든타임 충족</span>
         <span><i class="dot dot-no"></i>미충족</span>
       </div>
 
-      <div class="formula">
+      <div class="formula" id="formula-text">
         예상 이동시간(분) = 도로거리(km) ÷ 40km/h × 60 × 지체계수
       </div>
     </div>
 
     <div class="section">
       <div class="label-row">
-        <span>병원별 접근성 순위</span>
-        <span id="reachable-count" style="font-size:12px;color:#2563eb;">-</span>
+        <span>병원별 도로거리·시간 순위</span>
+        <span id="status-count" style="font-size:11px;color:#2563eb;">-</span>
       </div>
       <div class="rank-list" id="rank-list"></div>
+      <div class="note">
+        ※ OSRM 도로망 거리와 평균 40km/h·지체계수 기반 추정치이며, 실제 응급실 수용 여부와 다를 수 있습니다.
+      </div>
     </div>
   </div>
 
@@ -208,9 +257,29 @@
     let patientMarker;
     let hospitalMarkers = [];
     let routePolylines = [];
+    let loadedFromJson = false;
+    let activeDiseases = {};
 
     let simData = {
-      patient: { id: "P-001", region: "강남구", lat: 37.5172, lng: 127.0473 },
+      meta: {
+        speed_kmh: 40,
+        default_delay_factor: 1.3,
+        total_target_hospitals: 21,
+        matched_hospitals: 3,
+        routed_hospitals: 3,
+        diseases: [
+          { name: "심정지", limit: 10, color: "#E53935" },
+          { name: "중증응급", limit: 30, color: "#1E88E5" },
+          { name: "뇌졸중·심근경색", limit: 60, color: "#FBC02D" }
+        ],
+        traffic: null
+      },
+      patient: {
+        id: "P-001",
+        district: "강남구",
+        lat: 37.5172,
+        lng: 127.0473
+      },
       routes: [
         {
           name: "차의과학대학교강남차병원",
@@ -218,117 +287,172 @@
           lat: 37.5068,
           lng: 127.034669,
           distance_km: 2.47,
+          osrm_minutes: 4.5,
           coordinates: [
             { lat: 37.5172, lng: 127.0473 },
-            { lat: 37.5120, lng: 127.0410 },
             { lat: 37.5068, lng: 127.034669 }
-          ]
-        },
-        {
-          name: "더드림병원",
-          address: "서울특별시 강남구 선릉로 404",
-          lat: 37.50099,
-          lng: 127.050967,
-          distance_km: 2.64,
-          coordinates: [
-            { lat: 37.5172, lng: 127.0473 },
-            { lat: 37.5090, lng: 127.0490 },
-            { lat: 37.50099, lng: 127.050967 }
-          ]
-        },
-        {
-          name: "연세대학교의과대학강남세브란스병원",
-          address: "서울특별시 강남구 언주로 211",
-          lat: 37.492807,
-          lng: 127.046313,
-          distance_km: 4.11,
-          coordinates: [
-            { lat: 37.5172, lng: 127.0473 },
-            { lat: 37.5050, lng: 127.0468 },
-            { lat: 37.492807, lng: 127.046313 }
           ]
         }
       ]
     };
 
-    function calcEtaMinutes(distanceKm, delayFactor) {
-      // 거리(km) / 40(km/h) * 60(분/시간) * 지체계수 = 거리 * 1.5 * 지체계수
-      return (distanceKm / 40.0) * 60.0 * delayFactor;
+    function calcEtaMinutes(distanceKm, delayFactor, speedKmh) {
+      return (distanceKm / speedKmh) * 60.0 * delayFactor;
     }
 
-    function clearMapOverlays() {
+    function clearOverlays() {
       hospitalMarkers.forEach((m) => m.setMap(null));
       hospitalMarkers = [];
       routePolylines.forEach((p) => p.setMap(null));
       routePolylines = [];
     }
 
+    function buildDiseaseControls() {
+      const container = document.getElementById("disease-controls");
+      container.innerHTML = "";
+      const diseases = simData.meta.diseases || [];
+
+      diseases.forEach((d, idx) => {
+        if (activeDiseases[d.name] === undefined) {
+          activeDiseases[d.name] = true;
+        }
+        const row = document.createElement("label");
+        row.className = "disease-item";
+        const radioId = `base-disease-${idx}`;
+        const cbId = `show-disease-${idx}`;
+
+        row.innerHTML = `
+          <span class="disease-left">
+            <input type="radio" name="baseDisease" id="${radioId}" value="${d.name}" ${idx === 1 ? "checked" : ""} />
+            <span class="swatch" style="background:${d.color};"></span>
+            <span><b>${d.name}</b> (${d.limit}분)</span>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#475569;">
+            <input type="checkbox" id="${cbId}" ${activeDiseases[d.name] ? "checked" : ""} />
+            경로
+            <span class="disease-stat" id="dstat-${idx}">-</span>
+          </span>
+        `;
+
+        const radio = row.querySelector(`#${radioId}`);
+        const cb = row.querySelector(`#${cbId}`);
+        radio.addEventListener("change", renderSimulation);
+        cb.addEventListener("change", () => {
+          activeDiseases[d.name] = cb.checked;
+          renderSimulation();
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function renderSummary(evaluated, delayFactor, speedKmh) {
+      const pt = simData.patient;
+      const meta = simData.meta || {};
+      const fastest = evaluated.length > 0 ? evaluated[0] : null;
+
+      let trafficLine = "서울 교통 링크: 미조회";
+      if (meta.traffic && (meta.traffic.speed_kmh || meta.traffic.travel_time_sec)) {
+        trafficLine = `서울 교통 링크(${meta.traffic.link_id || "-"}): ${meta.traffic.speed_kmh ?? "-"}km/h / ${meta.traffic.travel_time_sec ?? "-"}초`;
+      }
+
+      document.getElementById("summary-box").innerHTML = `
+        <div><b>환자:</b> ${pt.id} (${pt.district}) · 좌표 ${Number(pt.lat).toFixed(4)}, ${Number(pt.lng).toFixed(4)}</div>
+        <div><b>병원 현황:</b> 지정 ${meta.total_target_hospitals ?? 21}곳 / 매칭 ${meta.matched_hospitals ?? evaluated.length}곳 / 경로 ${evaluated.length}곳</div>
+        <div><b>최단 병원:</b> ${fastest ? `${fastest.name} (${fastest.distance_km.toFixed(2)}km, ${fastest.eta.toFixed(1)}분)` : "없음"}</div>
+        <div style="color:#64748b;font-size:11px;margin-top:2px;">${trafficLine}</div>
+      `;
+
+      document.getElementById("formula-text").textContent =
+        `예상 이동시간(분) = 도로거리(km) ÷ ${speedKmh}km/h × 60 × 지체계수(${delayFactor.toFixed(1)})`;
+    }
+
     function renderSimulation() {
       if (!map) return;
 
+      const speedKmh = Number(simData.meta?.speed_kmh) || 40;
       const delayFactor = parseFloat(document.getElementById("delay-slider").value);
-      const goldenMinutes = parseFloat(
-        document.querySelector('input[name="disease"]:checked').value
-      );
       document.getElementById("delay-value").textContent = delayFactor.toFixed(1);
 
-      clearMapOverlays();
+      const diseases = simData.meta.diseases || [];
+      const selectedRadio = document.querySelector('input[name="baseDisease"]:checked');
+      const baseDiseaseName = selectedRadio ? selectedRadio.value : (diseases[0]?.name || "중증응급");
+      const baseDisease = diseases.find((d) => d.name === baseDiseaseName) || { name: baseDiseaseName, limit: 30, color: "#1E88E5" };
 
-      const evaluated = simData.routes
+      clearOverlays();
+
+      // 주피터 랩 순위표와 동일하게 도로거리(km) 기준 오름차순 정렬
+      const evaluated = (simData.routes || [])
         .map((r) => {
-          const eta = calcEtaMinutes(r.distance_km, delayFactor);
-          const isOk = eta <= goldenMinutes;
-          return { ...r, eta, isOk };
+          const dist = Number(r.distance_km);
+          const eta = calcEtaMinutes(dist, delayFactor, speedKmh);
+          const isOkBase = eta <= Number(baseDisease.limit);
+          const diseaseStatus = diseases.map((d) => ({
+            name: d.name,
+            limit: Number(d.limit),
+            color: d.color,
+            ok: eta <= Number(d.limit),
+            margin: Number((Number(d.limit) - eta).toFixed(2))
+          }));
+          return { ...r, distance_km: dist, eta, isOkBase, diseaseStatus };
         })
-        .sort((a, b) => a.eta - b.eta);
+        .sort((a, b) => a.distance_km - b.distance_km);
 
-      const okCount = evaluated.filter((x) => x.isOk).length;
-      document.getElementById("reachable-count").textContent =
-        `${okCount} / ${evaluated.length}개 충족`;
+      diseases.forEach((d, idx) => {
+        const okCnt = evaluated.filter((item) => item.eta <= Number(d.limit)).length;
+        const statEl = document.getElementById(`dstat-${idx}`);
+        if (statEl) statEl.textContent = `${okCnt}곳`;
+      });
+
+      const baseOkCount = evaluated.filter((x) => x.isOkBase).length;
+      document.getElementById("status-count").textContent =
+        `${baseDisease.name} ${baseOkCount}/${evaluated.length}곳 충족`;
+
+      renderSummary(evaluated, delayFactor, speedKmh);
+
+      // 선택된 질환들의 경로 Polyline 표시
+      diseases.forEach((d) => {
+        if (!activeDiseases[d.name]) return;
+        evaluated.forEach((item) => {
+          const fitsThis = item.eta <= Number(d.limit);
+          if (fitsThis && Array.isArray(item.coordinates) && item.coordinates.length > 1) {
+            const polyline = new google.maps.Polyline({
+              path: item.coordinates,
+              geodesic: true,
+              strokeColor: d.color,
+              strokeOpacity: 0.78,
+              strokeWeight: d.name === baseDisease.name ? 4.5 : 3,
+              zIndex: d.name === baseDisease.name ? 30 : 15,
+              map: map
+            });
+            polyline.addListener("click", (e) => {
+              openHospitalInfo(item, e.latLng || { lat: item.lat, lng: item.lng }, baseDisease);
+            });
+            routePolylines.push(polyline);
+          }
+        });
+      });
 
       const rankListEl = document.getElementById("rank-list");
       rankListEl.innerHTML = "";
 
       evaluated.forEach((item, idx) => {
-        const color = item.isOk ? "#16a34a" : "#dc2626";
+        const markerColor = item.isOkBase ? "#16a34a" : "#dc2626";
 
-        // 1) 경로 Polyline 그리기
-        if (Array.isArray(item.coordinates) && item.coordinates.length > 1) {
-          const polyline = new google.maps.Polyline({
-            path: item.coordinates,
-            geodesic: true,
-            strokeColor: color,
-            strokeOpacity: item.isOk ? 0.85 : 0.45,
-            strokeWeight: item.isOk ? 4 : 2.5,
-            zIndex: item.isOk ? 20 : 10,
-            map: map
-          });
-
-          polyline.addListener("click", (e) => {
-            openInfo(
-              item,
-              e.latLng || { lat: item.lat, lng: item.lng },
-              goldenMinutes
-            );
-          });
-          routePolylines.push(polyline);
-        }
-
-        // 2) 병원 마커 생성
         const marker = new google.maps.Marker({
-          position: { lat: item.lat, lng: item.lng },
+          position: { lat: Number(item.lat), lng: Number(item.lng) },
           map: map,
           title: `${idx + 1}위. ${item.name}`,
           label: {
             text: String(idx + 1),
             color: "#ffffff",
-            fontSize: "11px",
+            fontSize: "10.5px",
             fontWeight: "bold"
           },
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 11,
-            fillColor: color,
+            scale: 10.5,
+            fillColor: markerColor,
             fillOpacity: 1,
             strokeColor: "#ffffff",
             strokeWeight: 2
@@ -336,73 +460,89 @@
         });
 
         marker.addListener("click", () => {
-          openInfo(item, { lat: item.lat, lng: item.lng }, goldenMinutes);
+          openHospitalInfo(item, { lat: Number(item.lat), lng: Number(item.lng) }, baseDisease);
         });
         hospitalMarkers.push(marker);
 
-        // 3) 좌측 순위 목록 카드 생성
         const card = document.createElement("div");
         card.className = "rank-item";
         card.innerHTML = `
           <div class="rank-top">
             <span>${idx + 1}. ${item.name}</span>
-            <span class="${item.isOk ? "badge-ok" : "badge-no"}">${item.isOk ? "충족" : "미충족"}</span>
+            <span class="${item.isOkBase ? "badge-ok" : "badge-no"}">${item.isOkBase ? "충족" : "미충족"}</span>
           </div>
           <div class="rank-sub">
-            거리 ${item.distance_km.toFixed(2)}km · 예상 ${item.eta.toFixed(1)}분 (기준 ${goldenMinutes}분)
+            거리 <b>${item.distance_km.toFixed(2)}km</b> · 예상 <b>${item.eta.toFixed(1)}분</b> (${baseDisease.name} ${baseDisease.limit}분 기준)
           </div>
         `;
         card.addEventListener("click", () => {
-          map.panTo({ lat: item.lat, lng: item.lng });
-          map.setZoom(14);
-          openInfo(item, { lat: item.lat, lng: item.lng }, goldenMinutes);
+          map.panTo({ lat: Number(item.lat), lng: Number(item.lng) });
+          map.setZoom(13);
+          openHospitalInfo(item, { lat: Number(item.lat), lng: Number(item.lng) }, baseDisease);
         });
         rankListEl.appendChild(card);
       });
     }
 
-    function openInfo(item, position, goldenMinutes) {
-      const diff = (goldenMinutes - item.eta).toFixed(1);
-      const statusText = item.isOk
-        ? `<strong style="color:#15803d;">골든타임 충족</strong> (${diff}분 여유)`
-        : `<strong style="color:#b91c1c;">골든타임 미충족</strong> (${Math.abs(diff)}분 초과)`;
+    function openHospitalInfo(item, position, baseDisease) {
+      const lines = item.diseaseStatus
+        .map((ds) => {
+          const mark = ds.ok
+            ? `<span style="color:#15803d;font-weight:700;">충족 (${ds.margin >= 0 ? "+" : ""}${ds.margin}분)</span>`
+            : `<span style="color:#b91c1c;font-weight:700;">미충족 (${ds.margin}분)</span>`;
+          return `<div>• ${ds.name} (${ds.limit}분): ${mark}</div>`;
+        })
+        .join("");
 
       infoWindow.setContent(`
-        <div style="font-size:13px;line-height:1.5;max-width:250px;">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${item.name}</div>
-          <div style="color:#475569;font-size:11px;margin-bottom:6px;">${item.address}</div>
+        <div style="font-size:12.5px;line-height:1.5;max-width:265px;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${item.name}</div>
+          <div style="color:#64748b;font-size:11px;margin-bottom:6px;">${item.address || ""}</div>
           <div>도로 거리: <b>${item.distance_km.toFixed(2)} km</b></div>
-          <div>예상 이동시간: <b>${item.eta.toFixed(1)} 분</b></div>
-          <div style="margin-top:4px;">${statusText}</div>
+          <div>예상 이동시간: <b>${item.eta.toFixed(2)} 분</b></div>
+          <div style="margin-top:6px;padding-top:5px;border-top:1px solid #e2e8f0;">${lines}</div>
         </div>
       `);
       infoWindow.setPosition(position);
       infoWindow.open(map);
     }
 
-    async function loadExternalJsonIfAvailable() {
+    async function loadRoutesJson() {
       try {
         const res = await fetch("./routes_data.json", { cache: "no-store" });
         if (res.ok) {
           const parsed = await res.json();
           if (parsed && parsed.patient && Array.isArray(parsed.routes) && parsed.routes.length > 0) {
-            simData = parsed;
+            simData = {
+              ...simData,
+              ...parsed,
+              meta: { ...simData.meta, ...(parsed.meta || {}) }
+            };
+            loadedFromJson = true;
           }
         }
-      } catch (err) {
-        console.warn("routes_data.json을 찾지 못해 기본 샘플 데이터를 사용합니다.", err);
+      } catch (e) {
+        console.warn("routes_data.json 로드 실패, 기본 샘플 사용:", e);
       }
+
+      document.getElementById("data-source-label").textContent = loadedFromJson
+        ? "주피터 랩 분석 데이터(routes_data.json) 연동됨"
+        : "기본 샘플 데이터 표시 중 (routes_data.json 업로드 시 실제 결과 반영)";
     }
 
     async function initMap() {
-      await loadExternalJsonIfAvailable();
+      await loadRoutesJson();
+
+      const defaultDelay = Number(simData.meta?.default_delay_factor) || 1.3;
+      const slider = document.getElementById("delay-slider");
+      slider.value = defaultDelay;
+      document.getElementById("delay-value").textContent = defaultDelay.toFixed(1);
+
+      buildDiseaseControls();
 
       const pt = simData.patient;
-      document.getElementById("patient-summary").textContent =
-        `환자 발생지(${pt.id} ${pt.region}) 기준 도로 접근성`;
-
       map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: pt.lat, lng: pt.lng },
+        center: { lat: Number(pt.lat), lng: Number(pt.lng) },
         zoom: 12,
         mapTypeControl: true,
         streetViewControl: false
@@ -411,9 +551,9 @@
       infoWindow = new google.maps.InfoWindow();
 
       patientMarker = new google.maps.Marker({
-        position: { lat: pt.lat, lng: pt.lng },
+        position: { lat: Number(pt.lat), lng: Number(pt.lng) },
         map: map,
-        title: `환자 발생 위치 (${pt.id} ${pt.region})`,
+        title: `환자 발생 위치 (${pt.id} ${pt.district})`,
         label: {
           text: "P",
           color: "#ffffff",
@@ -433,21 +573,17 @@
 
       patientMarker.addListener("click", () => {
         infoWindow.setContent(`
-          <div style="font-size:13px;">
-            <b>환자 발생 위치 (${pt.id})</b><br/>
-            발생지역: ${pt.region}<br/>
-            좌표: ${pt.lat.toFixed(4)}, ${pt.lng.toFixed(4)}
+          <div style="font-size:12.5px;line-height:1.5;">
+            <b>응급환자 발생 위치 (${pt.id})</b><br/>
+            발생지역: ${pt.district}<br/>
+            좌표: ${Number(pt.lat).toFixed(5)}, ${Number(pt.lng).toFixed(5)}
           </div>
         `);
-        infoWindow.setPosition({ lat: pt.lat, lng: pt.lng });
+        infoWindow.setPosition({ lat: Number(pt.lat), lng: Number(pt.lng) });
         infoWindow.open(map);
       });
 
-      document.getElementById("delay-slider").addEventListener("input", renderSimulation);
-      document.querySelectorAll('input[name="disease"]').forEach((radio) => {
-        radio.addEventListener("change", renderSimulation);
-      });
-
+      slider.addEventListener("input", renderSimulation);
       renderSimulation();
     }
   </script>
